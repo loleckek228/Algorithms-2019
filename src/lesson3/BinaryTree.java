@@ -257,11 +257,13 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
         return current.value;
     }
 
-    public class SubTree extends BinaryTree<T> {
+    public class SubTree< T extends Comparable<T>> extends BinaryTree<T> {
 
         private BinaryTree<T> tree;
 
         T fromElement, toElement;
+
+        private int size = 0;
 
         public SubTree(BinaryTree<T> tree, T fromElement, T toElement) {
             this.tree = tree;
@@ -295,7 +297,15 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
 
         @Override
         public int size() {
-            return (int) tree.stream().filter(this::sub).count();
+
+            int counter = 0;
+
+            for (T value : tree)
+                if (sub(value)) counter++;
+
+            size = counter;
+
+            return size;
         }
 
     }
