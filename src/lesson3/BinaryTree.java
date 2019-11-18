@@ -35,12 +35,10 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
         Node<T> newNode = new Node<>(t);
         if (closest == null) {
             root = newNode;
-        }
-        else if (comparison < 0) {
+        } else if (comparison < 0) {
             assert closest.left == null;
             closest.left = newNode;
-        }
-        else {
+        } else {
             assert closest.right == null;
             closest.right = newNode;
         }
@@ -74,9 +72,44 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
      */
     @Override
     public boolean remove(Object o) {
-        // TODO
-        throw new NotImplementedError();
+
+        if (find((T) o) == null) return false;
+
+        root = removeNode(root, (T) o);
+        size--;
+
+        return true;
     }
+
+    private Node<T> removeNode(Node<T> node, T value) {
+
+        if (node == null) return null;
+
+        int comparator = value.compareTo(node.value);
+
+        if (comparator < 0) node.left = removeNode(node.left, value);
+        else if (comparator > 0) node.right = removeNode(node.right, value);
+        else if (node.left != null && node.right != null) {
+            Node<T> newNode = new Node<T>(min(node.right));
+            newNode.left = node.left;
+            newNode.right = node.right;
+            node = newNode;
+            node.right = removeNode(node.right, node.value);
+        } else {
+            if (node.left != null) return node.left;
+            else return node.right;
+        }
+
+        return node;
+    }
+
+    private T min(Node<T> node) {
+
+        while (node.left != null) node = node.left;
+
+        return node.value;
+    }
+
 
     @Override
     public boolean contains(Object o) {
@@ -95,12 +128,10 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
         int comparison = value.compareTo(start.value);
         if (comparison == 0) {
             return start;
-        }
-        else if (comparison < 0) {
+        } else if (comparison < 0) {
             if (start.left == null) return start;
             return find(start.left, value);
-        }
-        else {
+        } else {
             if (start.right == null) return start;
             return find(start.right, value);
         }
@@ -108,8 +139,14 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
 
     public class BinaryTreeIterator implements Iterator<T> {
 
+        private Stack<Node<T>> stack = new Stack<>();
+        private Node<T> current = root;
+
         private BinaryTreeIterator() {
-            // Добавьте сюда инициализацию, если она необходима
+            while (current != null) {
+                stack.push(current);
+                current = current.left;
+            }
         }
 
         /**
@@ -117,10 +154,8 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
          * Средняя
          */
         @Override
-        public boolean hasNext() {
-            // TODO
-            throw new NotImplementedError();
-        }
+        public boolean hasNext() {return !stack.isEmpty();}
+
 
         /**
          * Поиск следующего элемента
@@ -128,8 +163,20 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
          */
         @Override
         public T next() {
-            // TODO
-            throw new NotImplementedError();
+
+            current = stack.pop();
+
+            Node<T> node = current;
+
+            if (node != null) {
+                node = node.right;
+            }
+            while (node != null) {
+                stack.push(node);
+                node = node.left;
+            }
+
+            return current.value;
         }
 
         /**
@@ -138,8 +185,7 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
          */
         @Override
         public void remove() {
-            // TODO
-            throw new NotImplementedError();
+            BinaryTree.this.remove(current.value);
         }
     }
 
@@ -168,8 +214,7 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
     @NotNull
     @Override
     public SortedSet<T> subSet(T fromElement, T toElement) {
-        // TODO
-        throw new NotImplementedError();
+        return new SubTree(this, fromElement, toElement);
     }
 
     /**
@@ -179,8 +224,7 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
     @NotNull
     @Override
     public SortedSet<T> headSet(T toElement) {
-        // TODO
-        throw new NotImplementedError();
+        return new SubTree(this, null, toElement);
     }
 
     /**
@@ -190,8 +234,7 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
     @NotNull
     @Override
     public SortedSet<T> tailSet(T fromElement) {
-        // TODO
-        throw new NotImplementedError();
+        return new SubTree(this, fromElement, null);
     }
 
     @Override
@@ -212,5 +255,48 @@ public class BinaryTree<T extends Comparable<T>> extends AbstractSet<T> implemen
             current = current.right;
         }
         return current.value;
+    }
+
+    public class SubTree extends BinaryTree<T> {
+
+        private BinaryTree<T> tree;
+
+        T fromElement, toElement;
+
+        public SubTree(BinaryTree<T> tree, T fromElement, T toElement) {
+            this.tree = tree;
+            this.fromElement = fromElement;
+            this.toElement = toElement;
+        }
+
+
+        public boolean sub(T element) {
+
+            if (fromElement != null && toElement != null)
+                return element.compareTo(fromElement) >= 0 && element.compareTo(toElement) < 0;
+            else if (fromElement == null) return element.compareTo(toElement) < 0;
+            else return element.compareTo(fromElement) >= 0;
+        }
+
+        @Override
+        public boolean add(T t) {
+
+            if (sub(t)) return tree.add(t);
+
+            throw new IllegalArgumentException();
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            if (sub((T) o)) return tree.contains(o);
+
+            return false;
+        }
+
+        @Override
+        public int size() {
+            return (int) tree.stream().filter(this::sub).count();
+        }
+
     }
 }
